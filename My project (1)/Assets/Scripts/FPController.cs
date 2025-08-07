@@ -1,14 +1,28 @@
 using UnityEngine;
-using UnityEngine.InputSystem; //need to have it, if using new input system
+using UnityEngine.InputSystem;
+using UnityEngine.ProBuilder.MeshOperations; //need to have it, if using new input system
 public class FPController : MonoBehaviour
 {
     [Header("Movement Settings")] //aesthetics
     public float moveSpeed = 5f;
     public float gravity = -9.81f; // simulate gravity
-    [Header("Look Settings")] //aesthetics
+    public float jumpHeight = 1.5f;
+
+    [Header("LookSettings")]
     public Transform cameraTransform;
     public float lookSensitivity = 2f; // mouse/controller sensitivity
     public float verticalLookLimit = 90f; // FOV
+
+    [Header("Shooting")]
+    public GameObject bulletPrefab;
+    public Transform gunPoint;
+
+    [Header("Crouch Settings")]
+    public float crouchHeight = 1f;
+    public float standHeight = 2f;
+    public float crouchSpeed = 2.5f;
+    private float originalMoveSpeed;
+
     private CharacterController controller; // reference character controller component on player
     private Vector2 moveInput;
     private Vector2 lookInput;
@@ -53,5 +67,49 @@ public class FPController : MonoBehaviour
         verticalLookLimit);
         cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f); 
         transform.Rotate(Vector3.up * mouseX);
+    }
+
+    public void onJump(InputAction.CallbackContext context)
+    {
+        if (context.performed && controller.isGrounded) // controller sees if character on ground
+        {
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+    }
+
+    public void onShoot(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            Shoot();
+        }
+    }
+
+    public void Shoot()
+    {
+        if (bulletPrefab != null && gunPoint != null)
+        {
+            GameObject bullet = Instantiate(bulletPrefab, gunPoint.position, gunPoint.rotation);
+            Rigidbody rb = bullet.GetComponent<Rigidbody>();
+
+            if (rb != null)
+            {
+                rb.AddForce(gunPoint.forward * 1000f);
+            }
+        }
+    }
+
+    public void onCrouch(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+        {
+            controller.height = crouchHeight;
+            moveSpeed = crouchSpeed;
+        }
+        else if (context.canceled)
+        {
+            controller.height = standHeight;
+            moveSpeed = originalMoveSpeed;
+        }
     }
 }
